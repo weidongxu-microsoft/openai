@@ -8,8 +8,6 @@ import com.azure.ai.openai.OpenAiClientBuilder;
 import com.azure.ai.openai.models.Completions;
 import com.azure.ai.openai.models.CompletionsOptions;
 import com.azure.core.credential.AzureKeyCredential;
-import com.azure.core.http.policy.HttpLogDetailLevel;
-import com.azure.core.http.policy.HttpLogOptions;
 import com.azure.core.util.Configuration;
 
 import java.util.Collections;
@@ -59,7 +57,6 @@ public class Main {
             completionsClient = new OpenAiClientBuilder()
                     .endpoint(Configuration.getGlobalConfiguration().get("ENDPOINT"))
                     .credential(new AzureKeyCredential(Configuration.getGlobalConfiguration().get("API_KEY")))
-                    .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                     .buildClient();
         }
 
