@@ -3,14 +3,15 @@
 
 package io.weidongxu.util.chat;
 
-import com.azure.ai.openai.OpenAiClient;
-import com.azure.ai.openai.OpenAiClientBuilder;
-import com.azure.ai.openai.models.Completions;
-import com.azure.ai.openai.models.CompletionsOptions;
+import com.azure.ai.openai.OpenAIClient;
+import com.azure.ai.openai.OpenAIClientBuilder;
+import com.azure.ai.openai.models.ChatCompletions;
+import com.azure.ai.openai.models.ChatCompletionsOptions;
+import com.azure.ai.openai.models.ChatMessage;
+import com.azure.ai.openai.models.ChatRole;
 import com.azure.core.credential.AzureKeyCredential;
 import com.azure.core.util.Configuration;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,43 +29,43 @@ public class Main {
             if ("exit".equals(input)) {
                 break;
             } else {
-                String conversation = getConversation(input);
-                String reply = complete(conversation);
+                List<ChatMessage> conversation = getConversation(input);
+                String reply = chatComplete(conversation);
                 addReply(reply);
                 System.out.println("< " + reply);
             }
         }
     }
 
-    private static final List<String> conversation = new CopyOnWriteArrayList<>();
+    private static final List<ChatMessage> conversation = new CopyOnWriteArrayList<>();
     static {
-        conversation.add("<|im_start|>system\nThe following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly.\n<|im_end|>");
+        conversation.add(new ChatMessage(ChatRole.SYSTEM)
+                .setContent("The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly."));
     }
 
-    private static String getConversation(String input) {
-        conversation.add("<|im_start|>user\n" + input + "\n<|im_end|>");
-        return String.join("\n", conversation) + "\n<|im_start|>assistant\n";
+    private static List<ChatMessage> getConversation(String input) {
+        conversation.add(new ChatMessage(ChatRole.USER).setContent(input));
+        return conversation;
     }
 
     private static void addReply(String reply) {
-        conversation.add("<|im_start|>assistant\n" + reply + "\n<|im_end|>");
+        conversation.add(new ChatMessage(ChatRole.ASSISTANT).setContent(reply));
     }
 
-    private static OpenAiClient completionsClient;
+    private static OpenAIClient completionsClient;
 
-    private static String complete(String prompt) {
+    private static String chatComplete(List<ChatMessage> messages) {
         if (completionsClient == null) {
-            completionsClient = new OpenAiClientBuilder()
+            completionsClient = new OpenAIClientBuilder()
                     .endpoint(Configuration.getGlobalConfiguration().get("ENDPOINT"))
                     .credential(new AzureKeyCredential(Configuration.getGlobalConfiguration().get("API_KEY")))
                     .buildClient();
         }
 
-        Completions completions = completionsClient.getCompletions("gpt-35-turbo",
-                new CompletionsOptions()
-                        .setMaxTokens(512)
-                        .setStop(Collections.singletonList("<|im_end|>"))
-                        .setPrompt(Collections.singletonList(prompt)));
-        return completions.getChoices().get(0).getText();
+        String modelId = "gpt-4";
+        ChatCompletions completions = completionsClient.getChatCompletions(modelId,
+                new ChatCompletionsOptions(messages)
+                        .setMaxTokens(1024));
+        return completions.getChoices().get(0).getMessage().getContent();
     }
 }
