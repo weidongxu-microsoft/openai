@@ -10,8 +10,13 @@ import com.azure.ai.openai.models.ChatCompletionsOptions;
 import com.azure.ai.openai.models.ChatMessage;
 import com.azure.ai.openai.models.ChatRole;
 import com.azure.core.credential.AzureKeyCredential;
+import com.azure.core.http.HttpMethod;
+import com.azure.core.http.HttpPipelineBuilder;
+import com.azure.core.http.HttpRequest;
 import com.azure.core.util.Configuration;
+import com.azure.core.util.Context;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -21,6 +26,8 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         Scanner sc = new Scanner(System.in);
+
+        updatePrompt();
 
         while (true) {
             System.out.print("> ");
@@ -41,6 +48,23 @@ public class Main {
     static {
         conversation.add(new ChatMessage(ChatRole.SYSTEM)
                 .setContent("The following is a conversation with an AI assistant. The assistant is helpful, creative, clever, and very friendly."));
+    }
+
+    private static void updatePrompt() {
+        String quickStartUrl = "https://raw.githubusercontent.com/wiki/Azure/azure-sdk-for-java/TypeSpec-Java-Quickstart.md";
+
+        String markdownStr = new HttpPipelineBuilder().build()
+                .sendSync(new HttpRequest(HttpMethod.GET, quickStartUrl), Context.NONE)
+                .getBodyAsString(StandardCharsets.UTF_8).block();
+
+        conversation.clear();
+        conversation.add(new ChatMessage(ChatRole.SYSTEM)
+                .setContent(
+                        "Please answer question based on the fact included in triple quotes below.\n" +
+                        "\"\"\"" +
+                        markdownStr +
+                        "\"\"\""
+                ));
     }
 
     private static List<ChatMessage> getConversation(String input) {
